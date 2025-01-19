@@ -1,26 +1,111 @@
-import tensorflow as tf
-from tensorflow.keras import layers, models
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import cv2
+import numpy as np
+import os
+from PIL import Image
 
-datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2)
-train_data = datagen.flow_from_directory('testdata/', target_size=(64, 64), batch_size=32, subset='training')
-val_data = datagen.flow_from_directory('testdata/', target_size=(64, 64), batch_size=32, subset='validation')
+# Step 1: Load the image
+print("Step 1: Load the image")
+image_path = 'camera_image/photo.png'
+image = cv2.imread(image_path)
+if image is None:
+    raise FileNotFoundError(f"Image not found at path: {image_path}")
+print("Image loaded successfully.\n")
 
-print(f"Found {train_data.samples} training images belonging to {train_data.num_classes} classes.")
-print(f"Found {val_data.samples} validation images belonging to {val_data.num_classes} classes.")
+# Create output directory
+output_dir = 'output'
+os.makedirs(output_dir, exist_ok=True)
 
-model = models.Sequential([
-    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.MaxPooling2D((2, 2)),
-    layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(train_data.num_classes, activation='softmax')
-])
+# Save the original image
+cv2.imwrite(os.path.join(output_dir, 'original_image.jpg'), image)
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-model.fit(train_data, validation_data=val_data, epochs=10)
+# Step 2: Convert to grayscale and apply Gaussian blur
+print("Step 2: Convert to grayscale and apply Gaussian blur")
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+print("Grayscale conversion and Gaussian blur applied successfully.\n")
 
-# Save the Model
-model.save('pixel_pattern_model.h5')
+# Save the grayscale and blurred images
+cv2.imwrite(os.path.join(output_dir, 'grayscale_image.jpg'), gray)
+cv2.imwrite(os.path.join(output_dir, 'blurred_image.jpg'), blurred)
+
+# Step 3: Color segmentation to isolate white areas
+print("Step 3: Color segmentation to isolate white areas")
+hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+lower_white = np.array([0, 0, 200])
+upper_white = np.array([180, 30, 255])
+mask = cv2.inRange(hsv, lower_white, upper_white)
+segmented = cv2.bitwise_and(image, image, mask=mask)
+print("Color segmentation applied successfully.\n")
+
+# Save the segmented image
+cv2.imwrite(os.path.join(output_dir, 'segmented_image.jpg'), segmented)
+
+# Expand white pixels around by 1 pixel
+print("Expanding white pixels around by 1 pixel")
+kernel = np.ones((3,3), np.uint8)
+expanded_segmented = cv2.dilate(mask, kernel, iterations=1)
+print("White pixels expanded successfully.\n")
+
+# Save the expanded segmented image
+cv2.imwrite(os.path.join(output_dir, 'expanded_segmented_image.jpg'), expanded_segmented)
+
+# Step 5: Find and save the top 10 biggest enclosed areas with white border
+print("Step 5: Find and save the top 10 biggest enclosed areas with white border")
+contours, _ = cv2.findContours(expanded_segmented.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+print(f"Found {len(contours)} contours.\n")
+
+# Process each of the top 10 enclosed areas
+for i, contour in enumerate(contours):
+    # Create a directory for each enclosed area
+    area_dir = os.path.join(output_dir, f'enclosed_area_{i+1}')
+    os.makedirs(area_dir, exist_ok=True)
+
+    # Draw and save the contour on the original image for visualization
+    contour_image = image.copy()
+    cv2.drawContours(contour_image, [contour], -1, (0, 255, 0), 2)
+    cv2.imwrite(os.path.join(area_dir, 'top_contour_image.jpg'), contour_image)
+
+    # Save the enclosed area as a separate image
+    x, y, w, h = cv2.boundingRect(contour)
+    enclosed_area = image[y:y+h, x:x+w]
+    cv2.imwrite(os.path.join(area_dir, 'enclosed_area.jpg'), enclosed_area)
+
+    print(f"Enclosed area {i+1} saved successfully.\n")
+
+    # Convert the enclosed area to grayscale
+    enclosed_gray = cv2.cvtColor(enclosed_area, cv2.COLOR_BGR2GRAY)
+
+    # Recalculate the enclosed binary image based on brightness
+    recalculated_binary = np.where(enclosed_gray > 204, 255, 0).astype(np.uint8)  # 204 is 80% of 255
+
+    # Save the recalculated binary image
+    cv2.imwrite(os.path.join(area_dir, 'recalculated_binary_image.jpg'), recalculated_binary)
+
+    # Load the digital form of the pattern
+    digital_pattern_path = 'test_image/test1.jpg'
+    digital_pattern = cv2.imread(digital_pattern_path, cv2.IMREAD_GRAYSCALE)
+    if digital_pattern is None:
+        raise FileNotFoundError(f"Digital pattern not found at path: {digital_pattern_path}")
+    _, digital_binary = cv2.threshold(digital_pattern, 128, 255, cv2.THRESH_BINARY)
+    print(f"Digital pattern loaded and binarized successfully for enclosed area {i+1}.\n")
+
+    # Save the digital binary image
+    cv2.imwrite(os.path.join(area_dir, 'digital_binary_image.jpg'), digital_binary)
+
+    # Resize the digital pattern to match the size of the detected pattern
+    digital_binary_resized = cv2.resize(digital_binary, (recalculated_binary.shape[1], recalculated_binary.shape[0]))
+    print(f"Digital pattern resized successfully for enclosed area {i+1}.\n")
+
+    # Save the resized digital binary image
+    cv2.imwrite(os.path.join(area_dir, 'digital_binary_resized.jpg'), digital_binary_resized)
+
+    # Compare the patterns
+    difference = cv2.absdiff(recalculated_binary, digital_binary_resized)
+    match_percentage = (np.sum(difference == 0) / difference.size) * 100
+    print(f'Match Percentage for enclosed area {i+1}: {match_percentage:.2f}%\n')
+
+    # Save the difference image
+    cv2.imwrite(os.path.join(area_dir, 'difference.jpg'), difference)
+
+print("Results saved successfully.\n")
