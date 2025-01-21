@@ -7,6 +7,7 @@ import os
 import numpy as np
 import random
 import string
+import subprocess
 
 def find_working_camera():
     for i in range(5):  # Test the first 5 camera indices
@@ -110,6 +111,9 @@ def take_photo():
         # Save the image as "photo.png"
         img.save(photo_path)
         print(f"Photo saved as photo.png")
+        
+        # Run training.py after the photo is saved
+        subprocess.Popen(["python", "training.py"])
 
 root = tk.Tk()
 screen_width = root.winfo_screenwidth()
