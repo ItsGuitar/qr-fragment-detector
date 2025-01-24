@@ -164,7 +164,7 @@ def show_match_message(message):
     match_label.config(text=message, font=("Helvetica", 12), bg="black", fg="white")
     match_label.place(x=10, y=screen_height - 70, anchor='sw')
     countdown_label.config(bg="black", fg="white")
-    countdown_label.place(x=screen_width // 2, y=(screen_height // 2) + 50, anchor='center')
+    countdown_label.place(x=screen_width // 2, y=(screen_height // 2), anchor='center')
 
     info_label.config(text="หากรูปไม่ตรง โปรดมองข้าม", font=("Helvetica", 36), bg="black", fg="white")
     info_label.place(x=screen_width // 2, y=100, anchor='center')
@@ -172,7 +172,6 @@ def show_match_message(message):
     match = re.search(r'Best overall match found in test image (\d+) with match percentage (\d+\.\d+)%', message)
     if match:
         best_test_image = match.group(1)
-        best_match_percentage = match.group(2)
 
         # Read the rotation angle from the file
         rotation_angle = 0
@@ -192,7 +191,7 @@ def show_match_message(message):
             best_overall_image_tk = ImageTk.PhotoImage(best_overall_image)
             enclosed_area_label.config(image=best_overall_image_tk)
             enclosed_area_label.image = best_overall_image_tk
-            enclosed_area_label.place(x=(screen_width // 2) - 270, y=(screen_height // 2) - 200)  # Moved left and up
+            enclosed_area_label.place(x=(screen_width // 2) - 270, y=(screen_height // 2) - 200)
 
         test_image_path = os.path.join("test_image", f"test{best_test_image}.jpg")
         if os.path.exists(test_image_path):
@@ -201,10 +200,20 @@ def show_match_message(message):
             test_image_img_tk = ImageTk.PhotoImage(test_image_img)
             test_image_label.config(image=test_image_img_tk)
             test_image_label.image = test_image_img_tk
-            test_image_label.place(x=(screen_width // 2) + 70, y=(screen_height // 2) - 200)  # Moved left and up
+            test_image_label.place(x=(screen_width // 2) + 70, y=(screen_height // 2) - 200)
 
         rotation_label.config(text=f"หมุน\n{rotation_angle}°\nตามเข็ม", font=("Helvetica", 16), bg="black", fg="white")
         rotation_label.place(x=screen_width // 2, y=(screen_height // 2) - 150, anchor='center')
+
+        # Display the gridx.png below the countdown timer, at the same 200×200 size
+        grid_image_path = os.path.join("test_image", "location", f"grid{best_test_image}.png")
+        if os.path.exists(grid_image_path):
+            grid_image = Image.open(grid_image_path)
+            grid_image = grid_image.resize((200, 200), Image.Resampling.LANCZOS)
+            grid_image_tk = ImageTk.PhotoImage(grid_image)
+            grid_image_label.config(image=grid_image_tk)
+            grid_image_label.image = grid_image_tk
+            grid_image_label.place(x=screen_width // 2, y=(screen_height // 2) + 150, anchor='center')
 
     root.update()
     countdown(10)
@@ -212,7 +221,7 @@ def show_match_message(message):
 def countdown(seconds):
     global show_camera_feed
     loading_label.place_forget()
-    root.config(bg="black")  # Set the entire window background to black
+    root.config(bg="black")
     if seconds > 0:
         countdown_label.config(text=f"{seconds}", font=("Helvetica", 24), bg="black", fg="white")
         root.after(1000, countdown, seconds-1)
@@ -223,9 +232,10 @@ def countdown(seconds):
         test_image_label.place_forget()
         info_label.place_forget()
         rotation_label.place_forget()
+        grid_image_label.place_forget()
         capturing.clear()
         show_camera_feed = True
-        root.config(bg="white")  # Reset background to white
+        root.config(bg="white")
         label.config(bg="white", image='')
         photo_button.place(x=(screen_width - 200) // 2, y=screen_height - 200)
         root.update()
@@ -263,6 +273,9 @@ enclosed_area_label.place_forget()
 
 test_image_label = Label(root)
 test_image_label.place_forget()
+
+grid_image_label = Label(root)
+grid_image_label.place_forget()
 
 photo_button = tk.Button(root, text="ถ่าย", command=take_photo, width=20, height=3, font=("Helvetica", 16))
 photo_button.place(x=(screen_width - 200) // 2, y=screen_height - 200)
