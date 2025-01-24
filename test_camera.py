@@ -13,7 +13,7 @@ def test_camera(index):
     ret, frame = cap.read()
     if ret:
         root = tk.Tk()
-        root.title(f'Camera aTest {index}')
+        root.title(f'Camera Test {index}')
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
@@ -32,7 +32,13 @@ def test_camera(index):
         return False
 
 # Test different camera indices
+working_indices = []
 for i in range(10):  # Extend the range to test more indices
     if test_camera(i):
         print(f"Camera with index {i} is working.")
-        break
+        working_indices.append(i)
+
+if not working_indices:
+    print("No working cameras found.")
+else:
+    print(f"Working camera indices: {working_indices}")
