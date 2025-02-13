@@ -24,7 +24,7 @@ def find_working_camera():
 
 def calculate_contrast_color(color):
     luminance = (0.299 * color[2] + 0.587 * color[1] + 0.114 * color[0]) / 255
-    return (0, 0, 0) if luminance > 0.5 else (255, 255, 255)
+    return (170, 255, 0) if luminance > 0.5 else (255, 255, 255)
 
 def video_stream():
     if not capturing.is_set() and show_camera_feed:
@@ -37,6 +37,8 @@ def video_stream():
             else:
                 new_width = screen_width
                 new_height = int(new_width / aspect_ratio)
+                
+            new_width, new_height = screen_width, screen_height
 
             frame = cv2.resize(frame, (new_width, new_height))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -61,7 +63,7 @@ def video_stream():
             img_tk = ImageTk.PhotoImage(image=img)
             label.img_tk = img_tk
             label.config(image=img_tk, bg="black")
-    root.after(50, video_stream)
+    root.after(20, video_stream)
 
 def on_close():
     capturing.set()
@@ -161,12 +163,12 @@ def show_match_message(message):
     show_camera_feed = False
     label.config(image='', bg="black")
 
-    match_label.config(text=message, font=("Helvetica", 12), bg="black", fg="white")
+    match_label.config(text=message, font=("Noto Sans Thai", 12), bg="black", fg="white")
     match_label.place(x=10, y=screen_height - 70, anchor='sw')
     countdown_label.config(bg="black", fg="white")
     countdown_label.place(x=screen_width // 2, y=(screen_height // 2), anchor='center')
 
-    info_label.config(text="หากรูปไม่ตรง โปรดมองข้าม", font=("Helvetica", 36), bg="black", fg="white")
+    info_label.config(text="ตำแหน่งของชิ้นนี้", font=("Noto Sans Thai", 36), bg="black", fg="white")
     info_label.place(x=screen_width // 2, y=100, anchor='center')
 
     match = re.search(r'Best overall match found in test image (\d+) with match percentage (\d+\.\d+)%', message)
@@ -202,7 +204,7 @@ def show_match_message(message):
             test_image_label.image = test_image_img_tk
             test_image_label.place(x=(screen_width // 2) + 70, y=(screen_height // 2) - 200)
 
-        rotation_label.config(text=f"หมุน\n{rotation_angle}°\nตามเข็ม", font=("Helvetica", 16), bg="black", fg="white")
+        rotation_label.config(text=f"หมุน\n{rotation_angle}°\nตามเข็ม", font=("Noto Sans Thai", 16), bg="black", fg="white")
         rotation_label.place(x=screen_width // 2, y=(screen_height // 2) - 150, anchor='center')
 
         # Display the gridx.png below the countdown timer, at the same 200×200 size
@@ -223,7 +225,7 @@ def countdown(seconds):
     loading_label.place_forget()
     root.config(bg="black")
     if seconds > 0:
-        countdown_label.config(text=f"{seconds}", font=("Helvetica", 24), bg="black", fg="white")
+        countdown_label.config(text=f"{seconds}", font=("Noto Sans Thai", 24), bg="black", fg="white")
         root.after(1000, countdown, seconds-1)
     else:
         match_label.place_forget()
@@ -237,11 +239,12 @@ def countdown(seconds):
         show_camera_feed = True
         root.config(bg="white")
         label.config(bg="white", image='')
-        photo_button.place(x=(screen_width - 200) // 2, y=screen_height - 200)
+        photo_button.place(x=(screen_width - 360) // 2, y=screen_height - 300)
         root.update()
 
 import queue
 root = tk.Tk()
+root.attributes("-fullscreen", True)
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 root.geometry(f"{screen_width}x{screen_height}")
@@ -253,19 +256,19 @@ show_camera_feed = True
 label = Label(root, bg="black")
 label.place(x=0, y=0, width=screen_width, height=screen_height)
 
-loading_label = Label(root, text="Loading...", font=("Helvetica", 32), bg="black", fg="white")
+loading_label = Label(root, text="Loading...", font=("Noto Sans Thai", 32), bg="black", fg="white")
 loading_label.place_forget()
 
-match_label = Label(root, text="", font=("Helvetica", 12), bg="black", fg="white")
+match_label = Label(root, text="", font=("Noto Sans Thai", 12), bg="black", fg="white")
 match_label.place_forget()
 
-countdown_label = Label(root, text="", font=("Helvetica", 24), bg="black", fg="white")
+countdown_label = Label(root, text="", font=("Noto Sans Thai", 24), bg="black", fg="white")
 countdown_label.place_forget()
 
-info_label = Label(root, text="", font=("Helvetica", 16), bg="black", fg="white")
+info_label = Label(root, text="", font=("Noto Sans Thai", 16), bg="black", fg="white")
 info_label.place_forget()
 
-rotation_label = Label(root, text="", font=("Helvetica", 16), bg="black", fg="white")
+rotation_label = Label(root, text="", font=("Noto Sans Thai", 16), bg="black", fg="white")
 rotation_label.place_forget()
 
 enclosed_area_label = Label(root)
@@ -277,12 +280,13 @@ test_image_label.place_forget()
 grid_image_label = Label(root)
 grid_image_label.place_forget()
 
-photo_button = tk.Button(root, text="ถ่าย", command=take_photo, width=20, height=3, font=("Helvetica", 16))
-photo_button.place(x=(screen_width - 200) // 2, y=screen_height - 200)
+photo_button = tk.Button(root, text="สแกน QR CODE", command=take_photo, width=13, height=1, font=("Noto Sans Thai", 32, "bold",), bg="#FFC0CB")
+photo_button.place(x=(screen_width - 360) // 2, y=(screen_height - 300))
+
 
 camera_index = find_working_camera()
 if camera_index is None:
-    print("Error: Could not find a working camera.")
+    print("ไม่พบกล้อง โปรดตรวจสอบการเชื่อมต่ออีกครั้ง")
 else:
     cap = cv2.VideoCapture(camera_index)
     root.protocol("WM_DELETE_WINDOW", on_close)
