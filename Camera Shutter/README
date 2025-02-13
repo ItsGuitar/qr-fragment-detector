@@ -1,0 +1,4 @@
+ลง library ก่อนรัน
+- opencv | pip install opencv-python
+- numpy | pip install numpy
+- PIL | pip install pillow
