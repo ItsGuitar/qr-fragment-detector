@@ -9,7 +9,7 @@ The booth will feature QR code pieces scattered across a table. Participants mus
 ## Contributors
 
 *   ItsGuitar
-*   Banana7638
+*   PasinTinjok (Ex.Banana7638)
 *   Jump (Internal Contributor)
 
 ## Code Overview
